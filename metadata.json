@@ -1,0 +1,8 @@
+{
+  "name": "PC-Free",
+  "description": "Run Windows 10 free in your browser with PC-Free using Docker and GitHub Codespaces.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
