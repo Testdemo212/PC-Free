@@ -1,0 +1,83 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Validate static site files
+        shell: bash
+        run: |
+          set -e
+          required_files=(
+            "index.html"
+            "style.css"
+            "script.js"
+            "Compare.html"
+            "docs.html"
+            "faq.html"
+            "quickstart.html"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "Missing required file: $file"
+              exit 1
+            fi
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+          html_files = [
+              Path('index.html'),
+              Path('Compare.html'),
+              Path('docs.html'),
+              Path('faq.html'),
+              Path('quickstart.html'),
+          ]
+          for path in html_files:
+              text = path.read_text(encoding='utf-8')
+              if '<html' not in text.lower():
+                  raise SystemExit(f'{path} does not look like an HTML document')
+          print('Static site validation passed.')
+          PY
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
